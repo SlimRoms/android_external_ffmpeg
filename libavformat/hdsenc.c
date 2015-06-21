@@ -139,12 +139,10 @@ static void hds_free(AVFormatContext *s)
         return;
     for (i = 0; i < s->nb_streams; i++) {
         OutputStream *os = &c->streams[i];
-        if (os->out)
-            avio_close(os->out);
-        os->out = NULL;
+        avio_closep(&os->out);
         if (os->ctx && os->ctx_inited)
             av_write_trailer(os->ctx);
-        if (os->ctx && os->ctx->pb)
+        if (os->ctx)
             av_freep(&os->ctx->pb);
         if (os->ctx)
             avformat_free_context(os->ctx);
@@ -164,7 +162,7 @@ static int write_manifest(AVFormatContext *s, int final)
     AVIOContext *out;
     char filename[1024], temp_filename[1024];
     int ret, i;
-    float duration = 0;
+    double duration = 0;
 
     if (c->nb_streams > 0)
         duration = c->streams[0].last_ts * av_q2d(s->streams[0]->time_base);
@@ -311,8 +309,7 @@ static void close_file(OutputStream *os)
     avio_seek(os->out, 0, SEEK_SET);
     avio_wb32(os->out, pos);
     avio_flush(os->out);
-    avio_close(os->out);
-    os->out = NULL;
+    avio_closep(&os->out);
 }
 
 static int hds_write_header(AVFormatContext *s)
